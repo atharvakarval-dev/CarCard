@@ -112,8 +112,13 @@ export const activateTag = async (req: Request, res: Response) => {
     try {
         const { code, nickname, plateNumber } = req.body;
 
-        // In real app, userId comes from auth middleware
-        const userId = await getMockUserId();
+        // User ID comes from auth middleware
+        // @ts-ignore
+        const userId = req.user.id;
+
+        if (!userId) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
 
         // 1. Find the tag by code
         const tag = await prisma.tag.findUnique({

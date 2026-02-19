@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
+import { useAuthStore } from '../../store/authStore';
 import { useTagStore } from '../../store/tagStore';
 import { useThemeStore } from '../../store/themeStore';
 import { colors } from '../../theme/colors';
@@ -18,7 +19,9 @@ export default function TagDetailScreen() {
     const theme = colors[mode === 'dark' ? 'dark' : 'light'];
     const { tags, togglePrivacy } = useTagStore();
 
+    const { user } = useAuthStore();
     const tag = tags.find(t => t._id === id);
+    const isOwner = tag?.userId === (user as any)?._id || tag?.userId === (user as any)?.id; // handle inconsistent id field
 
     if (!tag) {
         return (
@@ -108,19 +111,23 @@ export default function TagDetailScreen() {
                     </TouchableOpacity>
                 </Card>
 
-                {/* Actions */}
-                <Button
-                    title="Download eTag PDF"
-                    variant="outline"
-                    icon={<Ionicons name="download-outline" size={20} color={theme.primary} />}
-                    onPress={() => { }}
-                    style={{ marginBottom: 12 }}
-                />
-                <Button
-                    title="Deactivate Tag"
-                    variant="danger"
-                    onPress={() => { }}
-                />
+                {/* Actions - Owner Only */}
+                {isOwner && (
+                    <>
+                        <Button
+                            title="Download eTag PDF"
+                            variant="outline"
+                            icon={<Ionicons name="download-outline" size={20} color={theme.primary} />}
+                            onPress={() => { }}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <Button
+                            title="Deactivate Tag"
+                            variant="danger"
+                            onPress={() => { }}
+                        />
+                    </>
+                )}
 
                 {/* Scan History */}
                 <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>Scan History</Text>

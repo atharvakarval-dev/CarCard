@@ -8,6 +8,8 @@ export interface Tag {
     type: 'car' | 'bike' | 'business' | 'other';
     plateNumber: string;
     isActive: boolean;
+    userId?: string;
+    status?: 'created' | 'active';
     privacy: {
         allowMaskedCall: boolean;
         allowWhatsapp: boolean;

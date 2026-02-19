@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import api from '../services/api';
 
 interface User {
+    id?: string;
     _id: string;
     phoneNumber: string;
     name?: string;

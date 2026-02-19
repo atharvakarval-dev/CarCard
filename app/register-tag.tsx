@@ -5,6 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { Button } from '../components/ui/Button';
 import { Header } from '../components/ui/Header';
 import { Input } from '../components/ui/Input';
+import { useAuthStore } from '../store/authStore';
 import { Tag, useTagStore } from '../store/tagStore';
 import { useThemeStore } from '../store/themeStore';
 import { colors } from '../theme/colors';
@@ -31,6 +32,28 @@ export default function RegisterTagScreen() {
             setCode('SAMPARK-NFC-' + Math.floor(Math.random() * 1000));
         }, 1000);
     };
+
+    const { user } = useAuthStore();
+
+    // Redirect to login if not authenticated
+    if (!user) {
+        return (
+            <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+                <Ionicons name="lock-closed-outline" size={64} color={theme.primary} />
+                <Text style={{ color: theme.text, marginTop: 16, textAlign: 'center', marginBottom: 24, fontSize: 18, fontWeight: '600' }}>
+                    Login Required
+                </Text>
+                <Text style={{ color: theme.textMuted, textAlign: 'center', marginBottom: 32 }}>
+                    You need to be logged in to register or activate a tag.
+                </Text>
+                <Button
+                    title="Login / Sign Up"
+                    onPress={() => router.push('/(auth)/login')}
+                    style={{ width: '100%' }}
+                />
+            </View>
+        );
+    }
 
     const handleRegister = async () => {
         if (!code || !nickname || !plate) {
