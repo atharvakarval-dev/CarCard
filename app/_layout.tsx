@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -27,6 +28,7 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     // Add custom fonts here if needed
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    ...Ionicons.font,
   });
 
   useEffect(() => {

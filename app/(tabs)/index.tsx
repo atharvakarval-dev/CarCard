@@ -105,12 +105,12 @@ function QuickAction({
   icon: string; label: string; onPress: () => void; bg: string; iconColor: string;
 }) {
   return (
-    <Touchable onPress={onPress} style={styles.qaWrapper}>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.qaWrapper, { opacity: pressed ? 0.7 : 1 }]}>
       <View style={[styles.qaIcon, { backgroundColor: bg }]}>
         <Ionicons name={icon as any} size={22} color={iconColor} />
       </View>
       <Text style={styles.qaLabel}>{label}</Text>
-    </Touchable>
+    </Pressable>
   );
 }
 
@@ -230,7 +230,7 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <Animated.ScrollView
-        style={{ opacity: fadeAnim }}
+        // style={{ opacity: fadeAnim }} 
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
         refreshControl={
           <RefreshControl

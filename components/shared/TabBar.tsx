@@ -31,7 +31,15 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, naviga
             <BlurView
                 intensity={80}
                 tint={mode === 'dark' ? 'dark' : 'light'}
-                style={[styles.blurView, { borderRadius: borderRadius.xl, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]}
+                style={[
+                    styles.blurView,
+                    {
+                        borderRadius: borderRadius.xl,
+                        borderColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                        borderWidth: 1,
+                        backgroundColor: mode === 'dark' ? 'rgba(10, 14, 26, 0.8)' : 'rgba(255, 255, 255, 0.8)'
+                    }
+                ]}
             >
                 <View style={styles.content}>
                     {state.routes.map((route: Route, index: number) => {
@@ -87,7 +95,7 @@ export const TabBar: React.FC<BottomTabBarProps> = ({ state, descriptors, naviga
                                     <Ionicons
                                         name={iconName}
                                         size={24}
-                                        color={isFocused ? theme.secondary : theme.text} // Neon accent for active
+                                        color={isFocused ? theme.primary : theme.text} // Use primary (darker blue) for better light mode contrast
                                     />
                                 </Animated.View>
                                 {isFocused && (
@@ -113,7 +121,7 @@ const styles = StyleSheet.create({
     },
     blurView: {
         overflow: 'hidden',
-        backgroundColor: 'rgba(10, 14, 26, 0.8)', // Semi-transparent background
+        // backgroundColor: 'rgba(10, 14, 26, 0.8)', // OLD: Hardcoded dark
     },
     content: {
         flexDirection: 'row',
