@@ -76,22 +76,23 @@ export default function ScanScreen() {
                     barcodeScannerSettings={{
                         barcodeTypes: ['qr'],
                     }}
-                >
-                    <View style={styles.overlay}>
+                />
+
+                <View style={[styles.overlay, { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }]}>
+                    <View style={styles.unfocusedContainer}></View>
+                    <View style={styles.middleContainer}>
                         <View style={styles.unfocusedContainer}></View>
-                        <View style={styles.middleContainer}>
-                            <View style={styles.unfocusedContainer}></View>
-                            <View style={styles.focusedContainer}>
-                                <View style={[styles.corner, { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderColor: theme.primary }]} />
-                                <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderColor: theme.primary }]} />
-                                <View style={[styles.corner, { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: theme.primary }]} />
-                                <View style={[styles.corner, { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderColor: theme.primary }]} />
-                            </View>
-                            <View style={styles.unfocusedContainer}></View>
+                        <View style={styles.focusedContainer}>
+                            <View style={[styles.corner, { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderColor: theme.primary }]} />
+                            <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderColor: theme.primary }]} />
+                            <View style={[styles.corner, { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: theme.primary }]} />
+                            <View style={[styles.corner, { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderColor: theme.primary }]} />
                         </View>
                         <View style={styles.unfocusedContainer}></View>
                     </View>
-                </CameraView>
+                    <View style={styles.unfocusedContainer}></View>
+                </View>
+
 
                 {scanned && (
                     <View style={styles.scannedOverlay}>

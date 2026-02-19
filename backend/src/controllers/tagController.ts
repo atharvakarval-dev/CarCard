@@ -12,6 +12,24 @@ const getMockUserId = async () => {
     return user.id;
 };
 
+// Helper to format tag response for frontend consistency
+const formatTagResponse = (tag: any) => {
+    if (!tag) return null;
+    return {
+        ...tag,
+        privacy: {
+            allowMaskedCall: tag.allowMaskedCall,
+            allowWhatsapp: tag.allowWhatsapp,
+            allowSms: tag.allowSms,
+            showEmergencyContact: tag.showEmergencyContact
+        },
+        emergencyContact: {
+            name: tag.emergencyContactName,
+            phone: tag.emergencyContactPhone
+        }
+    };
+};
+
 export const getTags = async (req: Request, res: Response) => {
     try {
         const userId = await getMockUserId();
@@ -19,7 +37,7 @@ export const getTags = async (req: Request, res: Response) => {
             where: { userId },
             include: { scans: true }
         });
-        res.json(tags);
+        res.json(tags.map(formatTagResponse));
     } catch (error) {
         console.error('Get Tags Error:', error);
         res.status(500).json({ message: 'Server error', error });
@@ -50,7 +68,7 @@ export const createTag = async (req: Request, res: Response) => {
             }
         });
 
-        res.status(201).json(newTag);
+        res.status(201).json(formatTagResponse(newTag));
     } catch (error) {
         console.error('Create Tag Error:', error);
         res.status(500).json({ message: 'Server error', error });
@@ -77,19 +95,28 @@ export const updatePrivacy = async (req: Request, res: Response) => {
             data: updateData
         });
 
-        res.json(updatedTag);
+        res.json(formatTagResponse(updatedTag));
     } catch (error) {
         console.error('Update Privacy Error:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };
 
+// Re-write getPublicTag to handle ID or Code more cleanly
+const findTagByIdOrCode = async (identifier: string) => {
+    // Try by code first if it looks like a tag code
+    if (identifier.startsWith('TAG-')) {
+        return prisma.tag.findUnique({ where: { code: identifier } });
+    }
+    // Else try by ID
+    return prisma.tag.findUnique({ where: { id: identifier } });
+}
+
 export const getPublicTag = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const tag = await prisma.tag.findUnique({
-            where: { id }
-        });
+
+        const tag = await findTagByIdOrCode(id);
 
         if (!tag) return res.status(404).json({ message: 'Tag not found' });
 
@@ -97,13 +124,14 @@ export const getPublicTag = async (req: Request, res: Response) => {
         await prisma.scan.create({
             data: {
                 tagId: tag.id,
-                location: 'Unknown', // In real app, get from req.body or IP
+                location: 'Unknown',
                 timestamp: new Date()
             }
         });
 
-        res.json(tag);
+        res.json(formatTagResponse(tag));
     } catch (error) {
+        console.error('Get Public Tag Error:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };
@@ -146,7 +174,7 @@ export const activateTag = async (req: Request, res: Response) => {
             }
         });
 
-        res.json({ message: 'Tag activated successfully', tag: updatedTag });
+        res.json({ message: 'Tag activated successfully', tag: formatTagResponse(updatedTag) });
 
     } catch (error) {
         console.error('Activate Tag Error:', error);

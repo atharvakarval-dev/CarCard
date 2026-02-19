@@ -86,7 +86,7 @@ export const useTagStore = create<TagState>((set, get) => ({
                 set({ tags: response.data, isLoading: false });
             }
         } catch (error) {
-            console.log('Fetch tags failed, using mock data');
+            console.error('Fetch tags failed:', error);
             set({ tags: MOCK_TAGS, isLoading: false }); // Fallback to mock on error
         }
     },

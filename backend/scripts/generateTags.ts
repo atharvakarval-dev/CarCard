@@ -12,7 +12,7 @@ const generateRandomCode = (length: number = 8): string => {
 };
 
 const BATCH_SIZE = 5000;
-const CHUNK_SIZE = 100; // Insert in chunks to avoid memory issues
+const CHUNK_SIZE = 100;
 
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
@@ -56,7 +56,8 @@ async function main() {
             });
 
             // Generate QR Code Buffer
-            const qrBuffer = await QRCode.toBuffer(code);
+            const qrData = `https://carcard.app/scan/${code}`;
+            const qrBuffer = await QRCode.toBuffer(qrData);
 
             // Add to PDF
             if (y + qrSize + 40 > doc.page.height - 30) {
