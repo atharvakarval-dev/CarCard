@@ -13,12 +13,12 @@ import { typography } from '../theme/typography';
 
 export default function RegisterTagScreen() {
     const router = useRouter();
-    const { code: initialCode } = useLocalSearchParams<{ code: string }>();
+    const params = useLocalSearchParams();
     const { mode } = useThemeStore();
     const theme = colors[mode === 'dark' ? 'dark' : 'light'];
     const { registerTag } = useTagStore();
 
-    const [code, setCode] = useState(initialCode || '');
+    const [code, setCode] = useState((params.code as string) || (params.tagId as string) || '');
     const [nickname, setNickname] = useState('');
     const [plate, setPlate] = useState('');
     const [type, setType] = useState<Tag['type']>('car');
