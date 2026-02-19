@@ -7,13 +7,16 @@
     "icon": "./assets/images/icon.png",
     "scheme": "carcard",
     "userInterfaceStyle": "automatic",
-...
+    "plugins": [
+      [
+        "expo-camera",
+        {
           "cameraPermission": "Allow CarCard to access your camera for scanning tags."
-...
-          "cameraPermission": "Allow CarCard to access your camera for scanning tags."
-  ],
-  "experiments": {
-    "typedRoutes": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
-}
 }
