@@ -73,6 +73,30 @@ export default function PublicScanScreen() {
         );
     }
 
+    // Handle inactive/created tags (Batch generated but not claimed)
+    if (tag.status === 'created' || (tag.isActive === false && !tag.userId)) {
+        return (
+            <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+                <Ionicons name="qr-code" size={80} color={theme.primary} />
+                <Text style={[styles.errorText, { color: theme.text, textAlign: 'center', marginBottom: 8 }]}>New Tag Detected</Text>
+                <Text style={{ color: theme.textMuted, textAlign: 'center', marginBottom: 24 }}>
+                    This tag ({tag.code}) is not activated yet.
+                </Text>
+                <Button
+                    title="Activate Tag"
+                    onPress={() => router.push({ pathname: '/register-tag', params: { code: tag.code } })}
+                    style={{ width: '100%' }}
+                />
+                <Button
+                    title="Cancel"
+                    variant="ghost"
+                    onPress={() => router.replace('/')}
+                    style={{ marginTop: 16 }}
+                />
+            </View>
+        );
+    }
+
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>

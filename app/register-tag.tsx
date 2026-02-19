@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Button } from '../components/ui/Button';
@@ -13,11 +13,12 @@ import { typography } from '../theme/typography';
 
 export default function RegisterTagScreen() {
     const router = useRouter();
+    const { code: initialCode } = useLocalSearchParams<{ code: string }>();
     const { mode } = useThemeStore();
     const theme = colors[mode === 'dark' ? 'dark' : 'light'];
     const { registerTag } = useTagStore();
 
-    const [code, setCode] = useState('');
+    const [code, setCode] = useState(initialCode || '');
     const [nickname, setNickname] = useState('');
     const [plate, setPlate] = useState('');
     const [type, setType] = useState<Tag['type']>('car');
@@ -38,13 +39,25 @@ export default function RegisterTagScreen() {
         }
 
         setLoading(true);
-        const success = await registerTag(code, nickname, type, plate);
+
+        // Try to activate existing tag first (Batch generated)
+        const { activateTag } = useTagStore.getState();
+        let success = await activateTag(code, nickname, type, plate);
+
+        // If activation failed (e.g. tag not found), try to register as new tag
+        if (!success) {
+            console.log('Activation failed, trying to register new tag...');
+            success = await registerTag(code, nickname, type, plate);
+        }
+
         setLoading(false);
 
         if (success) {
-            router.back();
+            Alert.alert('Success', 'Tag registered successfully!', [
+                { text: 'OK', onPress: () => router.back() }
+            ]);
         } else {
-            Alert.alert('Error', 'Failed to register tag');
+            Alert.alert('Error', 'Failed to register tag. It might be already in use.');
         }
     };
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Product from '../models/Product';
+import prisma from '../prisma';
 
 // Mock Products for Demo
 const MOCK_PRODUCTS = [
@@ -38,14 +38,19 @@ const MOCK_PRODUCTS = [
 export const getProducts = async (req: Request, res: Response) => {
     try {
         // Check if products exist, if not seed them
-        const count = await Product.countDocuments();
+        const count = await prisma.product.count();
         if (count === 0) {
-            await Product.insertMany(MOCK_PRODUCTS);
+            await prisma.product.createMany({
+                data: MOCK_PRODUCTS
+            });
         }
 
-        const products = await Product.find({ isActive: true });
+        const products = await prisma.product.findMany({
+            where: { isActive: true }
+        });
         res.json(products);
     } catch (error) {
+        console.error('Get Products Error:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };
@@ -61,6 +66,7 @@ export const createOrder = async (req: Request, res: Response) => {
             orderId: 'ORDER-' + Math.floor(Math.random() * 10000)
         });
     } catch (error) {
+        console.error('Create Order Error:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };

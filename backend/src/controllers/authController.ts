@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import User from '../models/User';
+import jwt from 'jsonwebtoken';
+import prisma from '../prisma';
 
 // Mock OTP storage (in-memory for demo, use Redis/DB in production)
 const otpStore: Record<string, string> = {};
@@ -32,20 +33,30 @@ export const verifyOtp = async (req: Request, res: Response) => {
             delete otpStore[phoneNumber]; // Clear OTP after use
 
             // Find or create user
-            let user = await User.findOne({ phoneNumber });
+            let user = await prisma.user.findUnique({
+                where: { phoneNumber }
+            });
+
             if (!user) {
-                user = new User({ phoneNumber });
-                await user.save();
+                user = await prisma.user.create({
+                    data: { phoneNumber }
+                });
             }
 
-            // Generate JWT (simplified for now, use library in real app)
-            const token = `mock-jwt-token-for-${user._id}`;
+            // Generate JWT
+            const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+            const token = jwt.sign(
+                { id: user.id, role: user.role },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
 
             res.status(200).json({ message: 'Login successful', token, user });
         } else {
             res.status(400).json({ message: 'Invalid OTP' });
         }
     } catch (error) {
+        console.error('Verify OTP Error:', error);
         res.status(500).json({ message: 'Server error', error });
     }
 };

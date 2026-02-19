@@ -27,6 +27,7 @@ interface TagState {
 
     fetchTags: () => Promise<void>;
     registerTag: (code: string, nickname: string, type: Tag['type'], plateNumber: string) => Promise<boolean>;
+    activateTag: (code: string, nickname: string, type: Tag['type'], plateNumber: string) => Promise<boolean>;
     togglePrivacy: (tagId: string, setting: keyof Tag['privacy']) => Promise<void>;
     getPublicTag: (tagId: string) => Promise<any>;
 }
@@ -98,6 +99,21 @@ export const useTagStore = create<TagState>((set, get) => ({
             return true;
         } catch (error) {
             set({ isLoading: false, error: 'Failed to register tag' });
+            return false;
+        }
+    },
+
+    activateTag: async (code: string, nickname: string, type: Tag['type'], plateNumber: string) => {
+        set({ isLoading: true });
+        try {
+            const response = await api.post('/tags/activate', { code, nickname, type, plateNumber });
+            const newTag = response.data.tag;
+
+            set(state => ({ tags: [...state.tags, newTag], isLoading: false }));
+            return true;
+        } catch (error) {
+            // Don't set global error here to allow fallback to register
+            set({ isLoading: false });
             return false;
         }
     },

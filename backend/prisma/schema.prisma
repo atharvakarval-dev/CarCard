@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phoneNumber String @unique
+  name      String?
+  email     String?
+  avatar    String?
+  role      String   @default("user") // 'user', 'admin'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tags      Tag[]
+}
+
+model Tag {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id])
+  nickname         String?
+  type             String   @default("car") // 'car', 'bike', 'business', 'other'
+  plateNumber      String?
+  isActive         Boolean  @default(true)
+  status           String   @default("created") // 'created', 'active', 'disabled'
+  
+  // Privacy Settings (stored as JSON or separate fields? Let's use separate fields for SQL)
+  allowMaskedCall      Boolean @default(true)
+  allowWhatsapp        Boolean @default(true)
+  allowSms             Boolean @default(true)
+  showEmergencyContact Boolean @default(false)
+  
+  // Emergency Contact (Flattened or separate table? Flattened for simplicity as it's 1:1)
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  
+  // Vehicle Details
+  vehicleColor String?
+  vehicleMake  String?
+  vehicleModel String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  scans     Scan[]
+}
+
+model Scan {
+  id        String   @id @default(uuid())
+  tagId     String
+  tag       Tag      @relation(fields: [tagId], references: [id])
+  location  String?
+  timestamp DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  imageUrl    String
+  category    String   @default("car") // 'car', 'bike', 'business', 'bundle'
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  
+  // Features stored as JSON array string or separate table?
+  // Postgres supports String[] but let's stick to a simple relation or String[] if prisma supports it well with postgres.
+  // Prisma + Postgres supports scalar lists.
+  features    String[] 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
