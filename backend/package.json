@@ -1,7 +1,7 @@
 {
-    "name": "sampark-backend",
+    "name": "carcard-backend",
     "version": "1.0.0",
-    "description": "Backend for Sampark Clone",
+    "description": "Backend for CarCard Clone",
     "main": "dist/server.js",
     "scripts": {
         "start": "node dist/server.js",

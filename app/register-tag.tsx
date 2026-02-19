@@ -29,7 +29,7 @@ export default function RegisterTagScreen() {
         // Mock NFC for now
         Alert.alert('Scanning...', 'Imagine user tapped an NFC tag. Code filled automatically.');
         setTimeout(() => {
-            setCode('SAMPARK-NFC-' + Math.floor(Math.random() * 1000));
+            setCode('CARCARD-NFC-' + Math.floor(Math.random() * 1000));
         }, 1000);
     };
 

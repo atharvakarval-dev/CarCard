@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+// @ts-ignore: Legacy import for expo-file-system v19+
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { useAuthStore } from '../../store/authStore';
@@ -17,6 +18,7 @@ export default function AdminDashboard() {
     const theme = colors[mode === 'dark' ? 'dark' : 'light'];
     const { user, token } = useAuthStore();
     const [loading, setLoading] = useState(false);
+    const [quantity, setQuantity] = useState('100');
 
     // Basic Role Guard (Frontend only, backend handles real security)
     if (!user || user.role !== 'admin') {
@@ -39,8 +41,10 @@ export default function AdminDashboard() {
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: parseInt(quantity) })
                 });
 
                 if (!response.ok) throw new Error('Generation failed');
@@ -58,7 +62,7 @@ export default function AdminDashboard() {
 
             } else {
                 // Mobile Download Logic (Expo FileSystem)
-                const fileUri = FileSystem.documentDirectory + 'generated_tags.pdf';
+                const fileUri = (FileSystem.documentDirectory || '') + 'generated_tags.pdf';
                 const { uri } = await FileSystem.downloadAsync(
                     apiUrl,
                     fileUri,
@@ -93,11 +97,23 @@ export default function AdminDashboard() {
                     <Ionicons name="documents-outline" size={48} color={theme.primary} />
                     <Text style={[styles.cardTitle, { color: theme.text }]}>Batch Generation</Text>
                     <Text style={[styles.cardDesc, { color: theme.textMuted }]}>
-                        Generate 5000 new generic QR codes and download the PDF for printing.
+                        Generate new generic QR codes and download the PDF for printing.
                     </Text>
 
+                    <View style={styles.inputContainer}>
+                        <Text style={[styles.label, { color: theme.text }]}>Quantity:</Text>
+                        <TextInput
+                            style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+                            keyboardType="number-pad"
+                            value={quantity}
+                            onChangeText={setQuantity}
+                            placeholder="Enter quantity (e.g., 100)"
+                            placeholderTextColor={theme.textMuted}
+                        />
+                    </View>
+
                     <Button
-                        title="Generate 5000 Tags & PDF"
+                        title={`Generate ${quantity || 0} Tags & PDF`}
                         onPress={handleGenerateBatch}
                         loading={loading}
                         style={{ marginTop: 16, width: '100%' }}
@@ -130,5 +146,19 @@ const styles = StyleSheet.create({
     cardDesc: {
         textAlign: 'center',
         marginBottom: 8,
+    },
+    inputContainer: {
+        width: '100%',
+        marginVertical: 12,
+    },
+    label: {
+        marginBottom: 8,
+        fontWeight: '500',
+    },
+    input: {
+        borderWidth: 1,
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
     }
 });

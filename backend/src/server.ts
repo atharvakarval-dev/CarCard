@@ -30,7 +30,7 @@ app.use('/api/admin', adminRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
-    res.send('Sampark Backend is Running! 🚀');
+    res.send('CarCard Backend is Running! 🚀');
 });
 
 // Start Server

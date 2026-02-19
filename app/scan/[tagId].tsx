@@ -47,11 +47,8 @@ export default function PublicScanScreen() {
 
     const handleWhatsApp = () => {
         if (tag?.privacy?.allowWhatsapp) {
-            const message = `Hello, I scanned your Sampark tag on your vehicle (${tag.plateNumber}).`;
+            const message = `Hello, I scanned your CarCard tag on your vehicle (${tag.plateNumber}).`;
             Linking.openURL(`whatsapp://send?text=${message}`);
-            // For real app need phone number, but privacy? 
-            // Sampark needs a bot for privacy proxing. 
-            // For MVP, just opening whatsapp generic or to a proxy number.
         }
     };
 

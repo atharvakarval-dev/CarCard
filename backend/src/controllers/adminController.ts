@@ -5,7 +5,20 @@ import prisma from '../prisma';
 
 export const generateBatch = async (req: Request, res: Response) => {
     try {
-        const BATCH_SIZE = 5000;
+        let { quantity } = req.body;
+
+        // Default to 100 if not provided or invalid
+        if (!quantity || isNaN(quantity) || quantity < 1) {
+            quantity = 100;
+        }
+
+        // Limit maximum quantity to prevent timeout/memory issues
+        const MAX_QUANTITY = 10000;
+        if (quantity > MAX_QUANTITY) {
+            return res.status(400).json({ message: `Quantity cannot exceed ${MAX_QUANTITY}` });
+        }
+
+        const BATCH_SIZE = quantity;
         const generateRandomCode = (length: number = 8): string => {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let result = '';
