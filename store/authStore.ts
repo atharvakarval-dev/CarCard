@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import api from '../services/api';
+import { ENDPOINTS } from '../services/config';
 
 interface User {
     id?: string;
@@ -39,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
             sendOtp: async (phoneNumber) => {
                 set({ isLoading: true, error: null });
                 try {
-                    await api.post('/auth/send-otp', { phoneNumber });
+                    await api.post(ENDPOINTS.AUTH_SEND_OTP, { phoneNumber });
                     set({ isLoading: false });
                     return true;
                 } catch (error: any) {
@@ -51,7 +52,7 @@ export const useAuthStore = create<AuthState>()(
             verifyOtp: async (phoneNumber, otp) => {
                 set({ isLoading: true, error: null });
                 try {
-                    const response = await api.post('/auth/verify-otp', { phoneNumber, otp });
+                    const response = await api.post(ENDPOINTS.AUTH_VERIFY_OTP, { phoneNumber, otp });
                     const { user, token } = response.data;
 
                     set({

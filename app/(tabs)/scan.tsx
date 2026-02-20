@@ -2,11 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Header } from '../../components/ui/Header';
 import { useThemeStore } from '../../store/themeStore';
 import { colors } from '../../theme/colors';
+import { parseQrPayload } from '../../utils/qrCrypto';
 
 export default function ScanScreen() {
     const router = useRouter();
@@ -49,19 +50,21 @@ export default function ScanScreen() {
     const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
         if (scanned) return;
 
-        // Filter: Only accept our tags
-        if (data.startsWith('TAG-') || data.includes('carcard.app/scan/')) {
+        // Decrypt / parse the scanned QR data
+        // Supports: CC::1:<encrypted>, legacy TAG-XXXX, legacy carcard.app/scan/XXXX
+        const tagCode = parseQrPayload(data);
+
+        if (tagCode) {
             setScanned(true);
-
-            // Extract code if it's a URL (future proofing)
-            let code = data;
-            if (data.includes('/scan/')) {
-                code = data.split('/scan/')[1];
-            }
-
-            // Navigate to the public scan page logic
-            // which will handle redirection to register if it's a new tag
-            router.push(`/scan/${code}`);
+            router.push(`/scan/${tagCode}`);
+        } else {
+            // Not a CarCard QR code
+            setScanned(true);
+            Alert.alert(
+                'Unrecognized QR Code',
+                'This QR code is not a valid CarCard tag.',
+                [{ text: 'Scan Again', onPress: () => setScanned(false) }]
+            );
         }
     };
 

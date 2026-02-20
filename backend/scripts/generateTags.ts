@@ -1,4 +1,53 @@
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
+
+// ── Import the shared crypto utility ──
+// We inline the functions here because this script runs standalone via ts-node
+// and doesn't share the React Native bundle path.
+
+const SECRET_KEY = 'C@rC4rd$ecr3tK3y!2026#QR';
+
+function stringToBytes(str: string): number[] {
+    const bytes: number[] = [];
+    for (let i = 0; i < str.length; i++) {
+        bytes.push(str.charCodeAt(i));
+    }
+    return bytes;
+}
+
+const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+function bytesToBase64(bytes: number[]): string {
+    let result = '';
+    for (let i = 0; i < bytes.length; i += 3) {
+        const b1 = bytes[i];
+        const b2 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+        const b3 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+        result += BASE64_CHARS[(b1 >> 2) & 0x3f];
+        result += BASE64_CHARS[((b1 << 4) | (b2 >> 4)) & 0x3f];
+        result += i + 1 < bytes.length ? BASE64_CHARS[((b2 << 2) | (b3 >> 6)) & 0x3f] : '=';
+        result += i + 2 < bytes.length ? BASE64_CHARS[b3 & 0x3f] : '=';
+    }
+    return result;
+}
+
+function encryptTagCode(plaintext: string): string {
+    const keyBytes = stringToBytes(SECRET_KEY);
+    const plainBytes = stringToBytes(plaintext);
+    const encrypted: number[] = [];
+    for (let i = 0; i < plainBytes.length; i++) {
+        encrypted.push(plainBytes[i] ^ keyBytes[i % keyBytes.length]);
+    }
+    return bytesToBase64(encrypted);
+}
+
+function buildQrPayload(tagCode: string): string {
+    return `CC::1:${encryptTagCode(tagCode)}`;
+}
+
+// ──────────────────────────────────────────────
 
 const prisma = new PrismaClient();
 
@@ -14,22 +63,18 @@ const generateRandomCode = (length: number = 8): string => {
 const BATCH_SIZE = 5000;
 const CHUNK_SIZE = 100;
 
-import fs from 'fs';
-import PDFDocument from 'pdfkit';
-import QRCode from 'qrcode';
-
 async function main() {
-    console.log(`🚀 Starting batch generation of ${BATCH_SIZE} tags...`);
+    console.log(`🚀 Starting batch generation of ${BATCH_SIZE} encrypted blank tags...`);
 
-    const tagsToCreate = [];
-    const existingCodes = new Set(); // To ensure uniqueness within the batch
+    const tagsToCreate: any[] = [];
+    const existingCodes = new Set<string>();
 
     // PDF Setup
     const doc = new PDFDocument({ margin: 30, size: 'A4' });
     const outputStream = fs.createWriteStream('generated_tags.pdf');
     doc.pipe(outputStream);
 
-    console.log('📄 Generating PDF...');
+    console.log('📄 Generating PDF with encrypted QR codes...');
 
     let x = 30;
     let y = 30;
@@ -38,26 +83,31 @@ async function main() {
     const cols = 4;
     let colCounter = 0;
 
-    // 1. Generate unique codes
+    // 1. Generate unique codes with ENCRYPTED QR payloads
     while (tagsToCreate.length < BATCH_SIZE) {
         const code = generateRandomCode();
         if (!existingCodes.has(code)) {
             existingCodes.add(code);
             tagsToCreate.push({
                 code,
-                type: 'car', // Default type, can be changed on activation
-                isActive: false, // Not active until claimed
+                type: 'car',
+                isActive: false,
                 status: 'created',
-                // Default privacy settings
                 allowMaskedCall: true,
                 allowWhatsapp: true,
                 allowSms: true,
-                showEmergencyContact: false
+                showEmergencyContact: false,
             });
 
-            // Generate QR Code Buffer
-            const qrData = `https://carcard.app/scan/${code}`;
-            const qrBuffer = await QRCode.toBuffer(qrData);
+            // ── Generate ENCRYPTED QR Code ──
+            // Instead of a plain URL, encode a proprietary encrypted payload.
+            // Third-party scanners will see: CC::1:aBcDeFgHiJk... (gibberish)
+            // Only the CarCard app can decrypt this to get TAG-XXXXXXXX
+            const qrData = buildQrPayload(code);
+            const qrBuffer = await QRCode.toBuffer(qrData, {
+                errorCorrectionLevel: 'M',
+                margin: 2,
+            });
 
             // Add to PDF
             if (y + qrSize + 40 > doc.page.height - 30) {
@@ -68,21 +118,21 @@ async function main() {
             }
 
             doc.image(qrBuffer, x, y, { width: qrSize });
-            doc.fontSize(10).text(code, x, y + qrSize + 5, { width: qrSize, align: 'center' });
+            doc.fontSize(8).text(code, x, y + qrSize + 5, { width: qrSize, align: 'center' });
 
             colCounter++;
             if (colCounter >= cols) {
                 colCounter = 0;
                 x = 30;
-                y += qrSize + gap + 20; // Move to next row
+                y += qrSize + gap + 20;
             } else {
-                x += qrSize + gap; // Move to next column
+                x += qrSize + gap;
             }
         }
     }
 
     doc.end();
-    console.log(`✅ Generated ${tagsToCreate.length} unique codes in memory and PDF.`);
+    console.log(`✅ Generated ${tagsToCreate.length} encrypted blank QR codes.`);
 
     // 2. Insert into DB in chunks
     let insertedCount = 0;
@@ -90,7 +140,7 @@ async function main() {
         const chunk = tagsToCreate.slice(i, i + CHUNK_SIZE);
         try {
             await prisma.tag.createMany({
-                data: chunk.map(t => ({ // Only take necessary fields for DB
+                data: chunk.map((t: any) => ({
                     code: t.code,
                     type: t.type,
                     isActive: t.isActive,
@@ -98,9 +148,9 @@ async function main() {
                     allowMaskedCall: t.allowMaskedCall,
                     allowWhatsapp: t.allowWhatsapp,
                     allowSms: t.allowSms,
-                    showEmergencyContact: t.showEmergencyContact
+                    showEmergencyContact: t.showEmergencyContact,
                 })),
-                skipDuplicates: true
+                skipDuplicates: true,
             });
             insertedCount += chunk.length;
             process.stdout.write(`\rCreating tags: ${insertedCount}/${BATCH_SIZE}`);
@@ -111,6 +161,7 @@ async function main() {
 
     console.log(`\n✨ Successfully inserted ${insertedCount} tags into the database.`);
     console.log('📄 PDF saved to generated_tags.pdf');
+    console.log('🔒 All QR codes are encrypted — only readable by the CarCard app.');
 }
 
 main()

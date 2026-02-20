@@ -1,20 +1,29 @@
 import { create } from 'zustand';
 import api from '../services/api';
+import { ENDPOINTS } from '../services/config';
 
 export interface Tag {
     _id: string;
+    id?: string;
     code: string;
     nickname: string;
     type: 'car' | 'bike' | 'business' | 'other';
     plateNumber: string;
     isActive: boolean;
     userId?: string;
-    status?: 'created' | 'active';
+    status?: 'created' | 'active' | 'disabled';
+    vehicleColor?: string;
+    vehicleMake?: string;
+    vehicleModel?: string;
     privacy: {
         allowMaskedCall: boolean;
         allowWhatsapp: boolean;
         allowSms: boolean;
         showEmergencyContact: boolean;
+    };
+    emergencyContact?: {
+        name?: string;
+        phone?: string;
     };
     scans: {
         timestamp: string;
@@ -32,43 +41,10 @@ interface TagState {
     activateTag: (code: string, nickname: string, type: Tag['type'], plateNumber: string) => Promise<boolean>;
     togglePrivacy: (tagId: string, setting: keyof Tag['privacy']) => Promise<void>;
     getPublicTag: (tagId: string) => Promise<any>;
+    updateTag: (tagId: string, data: Partial<Tag> & Record<string, any>) => Promise<{ success: boolean; otpRequired?: boolean }>;
+    sendTagOtp: (tagId: string, phoneNumber: string, pendingData: any) => Promise<boolean>;
+    verifyTagOtpAndUpdate: (tagId: string, phoneNumber: string, otp: string, pendingData: any) => Promise<boolean>;
 }
-
-// Mock Data
-const MOCK_TAGS: Tag[] = [
-    {
-        _id: '1',
-        code: 'TAG-123',
-        nickname: 'My Swift',
-        type: 'car',
-        plateNumber: 'MH 12 AB 1234',
-        isActive: true,
-        privacy: {
-            allowMaskedCall: true,
-            allowWhatsapp: true,
-            allowSms: true,
-            showEmergencyContact: false,
-        },
-        scans: [
-            { timestamp: new Date().toISOString(), location: 'Pune, India' },
-        ],
-    },
-    {
-        _id: '2',
-        code: 'TAG-456',
-        nickname: 'Office Bike',
-        type: 'bike',
-        plateNumber: 'MH 14 XY 9876',
-        isActive: true,
-        privacy: {
-            allowMaskedCall: false,
-            allowWhatsapp: true,
-            allowSms: true,
-            showEmergencyContact: true,
-        },
-        scans: [],
-    },
-];
 
 export const useTagStore = create<TagState>((set, get) => ({
     tags: [],
@@ -78,26 +54,24 @@ export const useTagStore = create<TagState>((set, get) => ({
     fetchTags: async () => {
         set({ isLoading: true, error: null });
         try {
-            const response = await api.get('/tags');
-            // If response.data is empty array, use mock for demo purposes if backend empty
-            if (Array.isArray(response.data) && response.data.length === 0) {
-                set({ tags: MOCK_TAGS, isLoading: false }); // Fallback to mock if empty
+            const response = await api.get(ENDPOINTS.TAGS);
+            set({ tags: response.data || [], isLoading: false });
+        } catch (error: any) {
+            const status = error.response?.status;
+            if (status === 401) {
+                // Not logged in — this is expected, not an error
+                set({ tags: [], isLoading: false, error: null });
             } else {
-                set({ tags: response.data, isLoading: false });
+                set({ tags: [], isLoading: false, error: 'Failed to load tags' });
             }
-        } catch (error) {
-            console.error('Fetch tags failed:', error);
-            set({ tags: MOCK_TAGS, isLoading: false }); // Fallback to mock on error
         }
     },
 
     registerTag: async (code, nickname, type, plateNumber) => {
         set({ isLoading: true });
         try {
-            const response = await api.post('/tags', { code, nickname, type, plateNumber });
-            const newTag = response.data;
-
-            set(state => ({ tags: [...state.tags, newTag], isLoading: false }));
+            const response = await api.post(ENDPOINTS.TAGS, { code, nickname, type, plateNumber });
+            set(state => ({ tags: [...state.tags, response.data], isLoading: false }));
             return true;
         } catch (error) {
             set({ isLoading: false, error: 'Failed to register tag' });
@@ -105,51 +79,88 @@ export const useTagStore = create<TagState>((set, get) => ({
         }
     },
 
-    activateTag: async (code: string, nickname: string, type: Tag['type'], plateNumber: string) => {
+    activateTag: async (code, nickname, type, plateNumber) => {
         set({ isLoading: true });
         try {
-            const response = await api.post('/tags/activate', { code, nickname, type, plateNumber });
-            const newTag = response.data.tag;
-
-            set(state => ({ tags: [...state.tags, newTag], isLoading: false }));
+            const response = await api.post(ENDPOINTS.TAGS_ACTIVATE, { code, nickname, type, plateNumber });
+            set(state => ({ tags: [...state.tags, response.data.tag], isLoading: false }));
             return true;
         } catch (error) {
-            // Don't set global error here to allow fallback to register
             set({ isLoading: false });
             return false;
         }
     },
 
     togglePrivacy: async (tagId, setting) => {
-        // Optimistic update
         set(state => ({
             tags: state.tags.map(tag =>
                 tag._id === tagId
                     ? { ...tag, privacy: { ...tag.privacy, [setting]: !tag.privacy[setting] } }
                     : tag
-            )
+            ),
         }));
-
         try {
-            await api.patch(`/tags/${tagId}/privacy`, { setting });
+            await api.patch(ENDPOINTS.TAGS_PRIVACY(tagId), { setting });
         } catch (error) {
-            // Revert if failed
             set(state => ({
                 tags: state.tags.map(tag =>
                     tag._id === tagId
                         ? { ...tag, privacy: { ...tag.privacy, [setting]: !tag.privacy[setting] } }
                         : tag
-                )
+                ),
             }));
         }
     },
 
     getPublicTag: async (tagId: string) => {
         try {
-            const response = await api.get(`/tags/public/${tagId}`);
+            const response = await api.get(ENDPOINTS.TAGS_PUBLIC(tagId));
             return response.data;
         } catch (error) {
             return null;
         }
-    }
+    },
+
+    updateTag: async (tagId, data) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await api.put(ENDPOINTS.TAGS_UPDATE(tagId), data);
+            if (response.data.otpRequired) {
+                set({ isLoading: false });
+                return { success: false, otpRequired: true };
+            }
+            set(state => ({
+                tags: state.tags.map(t => (t._id === tagId ? response.data.tag : t)),
+                isLoading: false,
+            }));
+            return { success: true };
+        } catch (error: any) {
+            set({ isLoading: false, error: error.response?.data?.message || 'Failed to update tag' });
+            return { success: false };
+        }
+    },
+
+    sendTagOtp: async (tagId, phoneNumber, pendingData) => {
+        try {
+            await api.post(ENDPOINTS.TAGS_OTP_SEND(tagId), { phoneNumber, pendingData });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    },
+
+    verifyTagOtpAndUpdate: async (tagId, phoneNumber, otp, pendingData) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await api.post(ENDPOINTS.TAGS_OTP_VERIFY(tagId), { phoneNumber, otp, pendingData });
+            set(state => ({
+                tags: state.tags.map(t => (t._id === tagId ? response.data.tag : t)),
+                isLoading: false,
+            }));
+            return true;
+        } catch (error: any) {
+            set({ isLoading: false, error: error.response?.data?.message || 'OTP verification failed' });
+            return false;
+        }
+    },
 }));

@@ -115,6 +115,12 @@ export default function TagDetailScreen() {
                 {isOwner && (
                     <>
                         <Button
+                            title="Edit Tag Details"
+                            icon={<Ionicons name="create-outline" size={20} color="#FFF" />}
+                            onPress={() => router.push({ pathname: '/tag/edit-[id]' as any, params: { id: tag._id } })}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <Button
                             title="Download eTag PDF"
                             variant="outline"
                             icon={<Ionicons name="download-outline" size={20} color={theme.primary} />}

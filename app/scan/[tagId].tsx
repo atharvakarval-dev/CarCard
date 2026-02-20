@@ -97,7 +97,7 @@ export default function PublicScanScreen() {
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <View style={styles.header}>
-                <Text style={[styles.logo, { color: theme.primary }]}>Sampark</Text>
+                <Text style={[styles.logo, { color: theme.primary }]}>CarCard</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -143,7 +143,7 @@ export default function PublicScanScreen() {
                 </Card>
 
                 <View style={styles.footer}>
-                    <Text style={[styles.footerText, { color: theme.textMuted }]}>Powered by Sampark.me</Text>
+                    <Text style={[styles.footerText, { color: theme.textMuted }]}>Powered by CarCard</Text>
                     <Button title="Get your own Tag" variant="ghost" onPress={() => router.push('/(tabs)/shop')} />
                 </View>
             </ScrollView>
