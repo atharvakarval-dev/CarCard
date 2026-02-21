@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Tag } from '../../store/tagStore';
 import { useThemeStore } from '../../store/themeStore';
 import { colors } from '../../theme/colors';
@@ -28,47 +28,63 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onTogglePrivacy, onPress 
         }
     };
 
+    const scale = useRef(new Animated.Value(1)).current;
+    const handlePress = useCallback(() => {
+        Animated.sequence([
+            Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 300, bounciness: 0 }),
+            Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 200, bounciness: 6 }),
+        ]).start();
+        onPress();
+    }, [onPress]);
+
     return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
-            <Card variant="glass" style={styles.card} padding="md" intensity={40}>
-                <View style={styles.header}>
-                    <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
-                        <Ionicons name={getIconName()} size={24} color={theme.primary} />
+        <Pressable
+            onPress={handlePress}
+            accessibilityRole="button"
+            accessibilityLabel={`${tag.nickname} tag`}
+            accessibilityHint="View tag details"
+        >
+            <Animated.View style={{ transform: [{ scale }] }}>
+                <Card variant="glass" style={styles.card} padding="md" intensity={40}>
+                    <View style={styles.header}>
+                        <View style={[styles.iconContainer, { backgroundColor: theme.primary + '20' }]}>
+                            <Ionicons name={getIconName()} size={24} color={theme.primary} />
+                        </View>
+                        <View style={styles.headerText}>
+                            <Text style={[styles.nickname, { color: theme.text }]}>{tag.nickname}</Text>
+                            <Text style={[styles.plate, { color: theme.textMuted }]}>{tag.plateNumber}</Text>
+                        </View>
+                        <Badge label={tag.isActive ? 'Active' : 'Disabled'} variant={tag.isActive ? 'success' : 'danger'} />
                     </View>
-                    <View style={styles.headerText}>
-                        <Text style={[styles.nickname, { color: theme.text }]}>{tag.nickname}</Text>
-                        <Text style={[styles.plate, { color: theme.textMuted }]}>{tag.plateNumber}</Text>
+
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+                    <View style={styles.actions}>
+                        <PrivacyToggle
+                            label="Call"
+                            icon="call"
+                            value={tag.privacy.allowMaskedCall}
+                            onChange={() => onTogglePrivacy(tag._id, 'allowMaskedCall')}
+                            theme={theme}
+                        />
+                        <PrivacyToggle
+                            label="WhatsApp"
+                            icon="logo-whatsapp"
+                            value={tag.privacy.allowWhatsapp}
+                            onChange={() => onTogglePrivacy(tag._id, 'allowWhatsapp')}
+                            theme={theme}
+                        />
+                        <PrivacyToggle
+                            label="SMS"
+                            icon="chatbubble"
+                            value={tag.privacy.allowSms}
+                            onChange={() => onTogglePrivacy(tag._id, 'allowSms')}
+                            theme={theme}
+                        />
                     </View>
-                    <Badge label={tag.isActive ? 'Active' : 'Disabled'} variant={tag.isActive ? 'success' : 'danger'} />
-                </View>
-
-                <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-                <View style={styles.actions}>
-                    <PrivacyToggle
-                        label="Call"
-                        icon="call"
-                        value={tag.privacy.allowMaskedCall}
-                        onChange={() => onTogglePrivacy(tag._id, 'allowMaskedCall')}
-                        theme={theme}
-                    />
-                    <PrivacyToggle
-                        label="WhatsApp"
-                        icon="logo-whatsapp"
-                        value={tag.privacy.allowWhatsapp}
-                        onChange={() => onTogglePrivacy(tag._id, 'allowWhatsapp')}
-                        theme={theme}
-                    />
-                    <PrivacyToggle
-                        label="SMS"
-                        icon="chatbubble"
-                        value={tag.privacy.allowSms}
-                        onChange={() => onTogglePrivacy(tag._id, 'allowSms')}
-                        theme={theme}
-                    />
-                </View>
-            </Card>
-        </TouchableOpacity>
+                </Card>
+            </Animated.View>
+        </Pressable>
     );
 };
 
@@ -113,8 +129,9 @@ const styles = StyleSheet.create({
         ...typography.caption,
     },
     divider: {
-        height: 1,
-        marginVertical: spacing.sm,
+        height: StyleSheet.hairlineWidth,
+        marginVertical: spacing.md,
+        opacity: 0.6,
     },
     actions: {
         flexDirection: 'row',

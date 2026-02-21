@@ -27,15 +27,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="shop"
-        options={{
-          title: 'Shop',
-        }}
-      />
-      <Tabs.Screen
         name="scan"
         options={{
           title: 'Scan',
+        }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={{
+          title: 'Shop',
         }}
       />
       <Tabs.Screen

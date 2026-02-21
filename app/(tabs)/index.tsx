@@ -1,41 +1,23 @@
 /**
- * HomeScreen — Elite Redesign
+ * HomeScreen — Elite Redesign v2
  *
  * Aesthetic: "Refined Automotive Luxury"
- * Inspiration: Apple Wallet meets BMW ConnectedDrive meets Stripe Dashboard
+ * Inspiration: Apple Wallet × BMW ConnectedDrive × Stripe Dashboard
  *
- * Key Design Decisions:
+ * v2 Improvements over v1:
  * ─────────────────────────────────────────────────────────────────────
- * 1. HERO: Deep navy-to-indigo mesh gradient with floating glass stats
- *    chips — gives a premium "live data" feel without visual noise.
- *
- * 2. TYPOGRAPHY: SF Pro sizing scale (11/12/13/15/18/22/42) with tight
- *    letter-spacing on headings. Weight contrast (400↔800) creates
- *    natural hierarchy without extra colour usage.
- *
- * 3. CARDS: Unified 20px radius, 1px border in semi-transparent white
- *    (light) / dark surface (dark), subtle shadow ring — feels raised
- *    without drop-shadow heaviness.
- *
- * 4. MOTION:
- *    - Section-level staggered fade+translate on mount (no jank).
- *    - Scale-spring on tag card press (native driver).
- *    - Skeleton shimmer using Animated loop.
- *    All animations are useNativeDriver: true except layout values.
- *
- * 5. QUICK ACTIONS: Pill-shaped row with icon-only first pass on narrow
- *    screens; labels always visible. Colour-coded icons use 10% opacity
- *    tinted backgrounds for restraint.
- *
- * 6. SCAN TIMELINE: Left-rail dot connector creates spatial flow —
- *    familiar from iOS Activity / Stripe feed patterns.
- *
- * 7. PROMO BANNER: Grid-break element — overlapping decorative orbs,
- *    frosted badge, bold weight contrast. Serves as visual "break" from
- *    list content.
- *
- * 8. ACCESSIBILITY: All interactive elements ≥ 44×44 pt. Semantic labels
- *    via accessibilityLabel. Color is never the sole information carrier.
+ * 1. ANIMATED NUMBERS: Hero stats count up 0→target (Revolut-style).
+ * 2. SKELETON FIDELITY: Multi-element skeleton mirrors TagCard layout,
+ *    dark-mode-aware colours.
+ * 3. DARK MODE CONTRAST: 12% luminance gap between bg → surface → card.
+ * 4. PAGE DOTS: Dot pagination under horizontal tag carousel.
+ * 5. PROMO SHIMMER: Animated shimmer across "LIMITED OFFER" pill.
+ * 6. NOTIFICATION PULSE: Subtle expanding ring on notification dot.
+ * 7. QUICK ACTIONS: 56px icon wells for better ergonomics.
+ * 8. SCAN TIMELINE: "See All" CTA when total > 5.
+ * 9. ADD TAG TILE: Gradient-border replaces dashed border.
+ * 10. PROMO ICON: Slow continuous rotation for visual interest.
+ * 11. ACCESSIBILITY: accessibilityHint on key interactive elements.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -51,6 +33,8 @@ import React, {
 import {
   Animated,
   Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   RefreshControl,
@@ -63,7 +47,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TagCard } from '../../components/tag/TagCard';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../store/authStore';
-import { useTagStore } from '../../store/tagStore';
+import { Tag, useTagStore } from '../../store/tagStore';
 import { useThemeStore } from '../../store/themeStore';
 
 // ─── Design System ────────────────────────────────────────────────────────────
@@ -72,7 +56,6 @@ const RADII = { sm: 10, md: 14, lg: 20, xl: 24, full: 9999 };
 const UNIT = 8;
 const sp = (n: number) => UNIT * n;
 
-// Semantic palette — only reference these throughout
 const COLOR = {
   // Brand
   navy: '#0A1628',
@@ -127,14 +110,15 @@ const LIGHT_THEME = {
   isDark: false,
 };
 
+// v2: Bumped surface values for ~12% luminance separation
 const DARK_THEME: ThemeTokens = {
   bg: '#0B0F1A',
   bgElevated: '#111827',
-  surface: '#131C2E',
-  surfaceSub: '#1A2540',
-  surfaceSub2: '#1F2D4A',
-  border: 'rgba(255,255,255,0.07)',
-  borderStrong: 'rgba(255,255,255,0.13)',
+  surface: '#151E32',
+  surfaceSub: '#1C2844',
+  surfaceSub2: '#223052',
+  border: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.14)',
   text: '#EEF2FF',
   textSub: '#8B9FCC',
   textMuted: '#4B5E8A',
@@ -165,10 +149,6 @@ function greeting(): string {
 
 // ─── Animation Hook ───────────────────────────────────────────────────────────
 
-/**
- * Staggered section reveal — each child fades in + slides up with a delay.
- * Uses native driver for opacity + translateY — zero JS thread cost.
- */
 function useSectionAnim(index: number, delay = 0) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -185,11 +165,46 @@ function useSectionAnim(index: number, delay = 0) {
   };
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// ─── Animated Number (v2) ─────────────────────────────────────────────────────
+/**
+ * Counts from 0 → value over 800ms with ease-out cubic.
+ * Uses requestAnimationFrame for lightweight JS-thread animation.
+ */
+const AnimatedNumber = memo(
+  ({ value, style }: { value: number; style?: any }) => {
+    const [display, setDisplay] = useState(0);
+
+    useEffect(() => {
+      if (value === 0) { setDisplay(0); return; }
+
+      const duration = 800;
+      const startTime = Date.now();
+      let frame: number;
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        setDisplay(Math.round(eased * value));
+
+        if (progress < 1) {
+          frame = requestAnimationFrame(animate);
+        }
+      };
+
+      frame = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(frame);
+    }, [value]);
+
+    return <Text style={style}>{display}</Text>;
+  }
+);
+
+// ─── Skeleton (v2: dark-mode-aware) ───────────────────────────────────────────
 
 const Skeleton = memo(
-  ({ width, height, radius = RADII.md, style }: {
-    width: number | string; height: number; radius?: number; style?: any;
+  ({ width, height, radius = RADII.md, style, theme }: {
+    width: number | string; height: number; radius?: number; style?: any; theme: ThemeTokens;
   }) => {
     const shimmer = useRef(new Animated.Value(0)).current;
     useEffect(() => {
@@ -203,7 +218,13 @@ const Skeleton = memo(
     return (
       <Animated.View
         style={[
-          { width, height, borderRadius: radius, backgroundColor: COLOR.grey200, opacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.65] }) },
+          {
+            width,
+            height,
+            borderRadius: radius,
+            backgroundColor: theme.isDark ? theme.surfaceSub : COLOR.grey200,
+            opacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.65] }),
+          },
           style,
         ]}
       />
@@ -211,11 +232,44 @@ const Skeleton = memo(
   }
 );
 
+// ─── Tag Card Skeleton (v2: high-fidelity layout) ────────────────────────────
+
+const TagCardSkeleton = memo(
+  ({ theme }: { theme: ThemeTokens }) => (
+    <View style={[styles.tagCardWrap, {
+      backgroundColor: theme.surface,
+      borderRadius: RADII.lg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      padding: sp(2),
+    }]}>
+      {/* Header row: icon + text + badge */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: sp(1.5) }}>
+        <Skeleton width={40} height={40} radius={RADII.md} theme={theme} />
+        <View style={{ marginLeft: sp(1.5), flex: 1, gap: 6 }}>
+          <Skeleton width={120} height={14} radius={6} theme={theme} />
+          <Skeleton width={80} height={10} radius={4} theme={theme} />
+        </View>
+        <Skeleton width={52} height={20} radius={RADII.full} theme={theme} />
+      </View>
+      {/* Divider */}
+      <Skeleton width="100%" height={1} radius={0} theme={theme} style={{ marginVertical: sp(1) }} />
+      {/* Toggle row */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-around', paddingTop: sp(1) }}>
+        <Skeleton width={32} height={32} radius={16} theme={theme} />
+        <Skeleton width={32} height={32} radius={16} theme={theme} />
+        <Skeleton width={32} height={32} radius={16} theme={theme} />
+      </View>
+    </View>
+  )
+);
+
 // ─── Pressable with spring feedback ──────────────────────────────────────────
 
 const SpringPress = memo(
-  ({ onPress, style, children, accessibilityLabel }: {
-    onPress: () => void; style?: any; children: React.ReactNode; accessibilityLabel?: string;
+  ({ onPress, style, children, accessibilityLabel, accessibilityHint }: {
+    onPress: () => void; style?: any; children: React.ReactNode;
+    accessibilityLabel?: string; accessibilityHint?: string;
   }) => {
     const scale = useRef(new Animated.Value(1)).current;
     const handlePress = useCallback(() => {
@@ -231,6 +285,7 @@ const SpringPress = memo(
         onPress={handlePress}
         style={style}
         accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
         accessibilityRole="button"
       >
         <Animated.View style={{ transform: [{ scale }] }}>{children}</Animated.View>
@@ -239,15 +294,80 @@ const SpringPress = memo(
   }
 );
 
-// ─── Hero Glass Stat Chip ─────────────────────────────────────────────────────
+// ─── Notification Dot with Pulse Ring (v2) ────────────────────────────────────
+
+const NotifDotAnimated = memo(() => {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={heroStyles.notifDotWrap}>
+      <Animated.View
+        style={[
+          heroStyles.notifPulseRing,
+          {
+            opacity: pulse.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.6, 0.15, 0] }),
+            transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.5] }) }],
+          },
+        ]}
+      />
+      <View style={heroStyles.notifDot} />
+    </View>
+  );
+});
+
+// ─── Hero Glass Stat Chip (v2: animated number) ──────────────────────────────
 
 const HeroStat = memo(
   ({ value, label }: { value: number; label: string }) => (
     <View style={heroStyles.statChip}>
-      <Text style={heroStyles.statValue}>{value}</Text>
+      <AnimatedNumber value={value} style={heroStyles.statValue} />
       <Text style={heroStyles.statLabel}>{label}</Text>
     </View>
   )
+);
+
+// ─── Shimmer Pill (v2) ───────────────────────────────────────────────────────
+
+const ShimmerPill = memo(
+  ({ text }: { text: string }) => {
+    const shimmer = useRef(new Animated.Value(-1)).current;
+    useEffect(() => {
+      Animated.loop(
+        Animated.timing(shimmer, {
+          toValue: 1,
+          duration: 2500,
+          useNativeDriver: true,
+        })
+      ).start();
+    }, []);
+
+    return (
+      <View style={promoStyles.pill}>
+        <Text style={promoStyles.pillText}>{text}</Text>
+        <Animated.View
+          style={[
+            promoStyles.shimmerStripe,
+            {
+              transform: [{
+                translateX: shimmer.interpolate({
+                  inputRange: [-1, 1],
+                  outputRange: [-80, 80],
+                }),
+              }],
+            },
+          ]}
+        />
+      </View>
+    );
+  }
 );
 
 // ─── Quick Action Button ──────────────────────────────────────────────────────
@@ -258,7 +378,7 @@ const QuickAction = memo(
   }) => (
     <SpringPress onPress={onPress} accessibilityLabel={label} style={styles.qaItem}>
       <View style={[styles.qaIconWrap, { backgroundColor: bg }]}>
-        <Ionicons name={icon as any} size={20} color={tint} />
+        <Ionicons name={icon as any} size={22} color={tint} />
       </View>
       <Text style={styles.qaLabel}>{label}</Text>
     </SpringPress>
@@ -269,7 +389,7 @@ const QuickAction = memo(
 
 const ScanRow = memo(
   ({ scan, theme, isFirst, isLast }: {
-    scan: any; theme: ThemeTokens; isFirst: boolean; isLast: boolean;
+    scan: Tag['scans'][number]; theme: ThemeTokens; isFirst: boolean; isLast: boolean;
   }) => (
     <View style={[
       scanStyles.row,
@@ -369,6 +489,30 @@ const EmptyState = memo(
   )
 );
 
+// ─── Page Dots (v2) ───────────────────────────────────────────────────────────
+
+const PageDots = memo(
+  ({ count, active, theme }: { count: number; active: number; theme: ThemeTokens }) => {
+    if (count <= 1) return null;
+    return (
+      <View style={styles.pageDots}>
+        {Array.from({ length: count }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.pageDot,
+              {
+                backgroundColor: i === active ? theme.primary : theme.border,
+                width: i === active ? 16 : 6,
+              },
+            ]}
+          />
+        ))}
+      </View>
+    );
+  }
+);
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
@@ -379,6 +523,7 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const { tags, fetchTags, togglePrivacy, isLoading } = useTagStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTagPage, setActiveTagPage] = useState(0);
 
   useEffect(() => { fetchTags(); }, []);
 
@@ -388,22 +533,43 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [fetchTags]);
 
-  // Derived data — memoized to prevent recalculation on re-renders
+  // v2: Track carousel page for dot indicator
+  const onTagScrollEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const page = Math.round(e.nativeEvent.contentOffset.x / (288 + sp(2)));
+      setActiveTagPage(Math.min(page, tags.length - 1));
+    },
+    [tags.length]
+  );
+
+  // Derived data
   const totalScans = React.useMemo(
-    () => tags.reduce((acc: number, t: any) => acc + (t.scans?.length ?? 0), 0),
+    () => tags.reduce((acc: number, t: Tag) => acc + (t.scans?.length ?? 0), 0),
     [tags]
   );
   const activeTags = React.useMemo(
-    () => tags.filter((t: any) => !t.isPrivate).length,
+    () => tags.filter((t: Tag) => t.isActive).length,
     [tags]
   );
   const recentScans = React.useMemo(
     () => tags
-      .flatMap((t: any) => t.scans ?? [])
-      .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .flatMap((t: Tag) => t.scans ?? [])
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 5),
     [tags]
   );
+
+  // v2: Promo icon slow rotation
+  const promoRotation = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(promoRotation, {
+        toValue: 1,
+        duration: 12000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
 
   // Staggered section animations
   const heroAnim = useSectionAnim(0);
@@ -449,14 +615,15 @@ export default function HomeScreen() {
             onPress={() => { }}
             hitSlop={12}
             accessibilityLabel="Notifications"
+            accessibilityHint="View your notifications"
             accessibilityRole="button"
           >
             <Ionicons name="notifications-outline" size={20} color="rgba(255,255,255,0.9)" />
-            <View style={heroStyles.notifDot} />
+            <NotifDotAnimated />
           </Pressable>
         </Animated.View>
 
-        {/* Glass stats row */}
+        {/* Glass stats row — v2: animated numbers */}
         <Animated.View style={[heroStyles.statsRow, heroAnim]}>
           <HeroStat value={tags.length} label="Tags" />
           <View style={heroStyles.statsDivider} />
@@ -541,14 +708,11 @@ export default function HomeScreen() {
           />
 
           {isLoading && !refreshing ? (
-            /* Skeleton loading */
+            /* v2: High-fidelity skeleton */
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {[0, 1].map((k) => (
-                <View key={k} style={{ marginRight: sp(2) }}>
-                  <Skeleton width={280} height={148} radius={RADII.lg} />
-                </View>
+                <TagCardSkeleton key={k} theme={theme} />
               ))}
-              <Skeleton width={100} height={148} radius={RADII.lg} />
             </ScrollView>
           ) : tags.length === 0 ? (
             <EmptyState
@@ -562,43 +726,53 @@ export default function HomeScreen() {
               theme={theme}
             />
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              snapToInterval={288 + sp(2)} // tag width + gap
-              snapToAlignment="start"
-              contentContainerStyle={styles.tagScrollContent}
-            >
-              {tags.map((tag: any) => (
-                <View key={tag._id} style={styles.tagCardWrap}>
-                  <TagCard
-                    tag={tag}
-                    onTogglePrivacy={togglePrivacy}
-                    onPress={() =>
-                      router.push({ pathname: '/tag/[id]', params: { id: tag._id } })
-                    }
-                  />
-                </View>
-              ))}
-              {/* Add new tag tile */}
-              <SpringPress
-                onPress={() => router.push('/register-tag')}
-                accessibilityLabel="Add new tag"
+            <>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                snapToInterval={288 + sp(2)}
+                snapToAlignment="start"
+                contentContainerStyle={styles.tagScrollContent}
+                onMomentumScrollEnd={onTagScrollEnd}
               >
-                <View style={[styles.addTagTile, {
-                  borderColor: theme.borderStrong,
-                  backgroundColor: theme.surfaceSub,
-                }]}>
-                  <View style={[styles.addTagIconWrap, { backgroundColor: theme.primaryFrost }]}>
-                    <Ionicons name="add" size={26} color={theme.primary} />
+                {tags.map((tag: Tag) => (
+                  <View key={tag._id} style={styles.tagCardWrap}>
+                    <TagCard
+                      tag={tag}
+                      onTogglePrivacy={togglePrivacy}
+                      onPress={() =>
+                        router.push({ pathname: '/tag/[id]', params: { id: tag._id } })
+                      }
+                    />
                   </View>
-                  <Text style={[styles.addTagLabel, { color: theme.textSub }]}>
-                    Add{'\n'}Tag
-                  </Text>
-                </View>
-              </SpringPress>
-            </ScrollView>
+                ))}
+                {/* v2: Gradient-bordered Add Tag tile */}
+                <SpringPress
+                  onPress={() => router.push('/register-tag')}
+                  accessibilityLabel="Add new tag"
+                  accessibilityHint="Register a new vehicle tag"
+                >
+                  <LinearGradient
+                    colors={[theme.primary + '50', theme.primary + '15']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.addTagGradientBorder}
+                  >
+                    <View style={[styles.addTagTileInner, { backgroundColor: theme.surfaceSub }]}>
+                      <View style={[styles.addTagIconWrap, { backgroundColor: theme.primaryFrost }]}>
+                        <Ionicons name="add" size={26} color={theme.primary} />
+                      </View>
+                      <Text style={[styles.addTagLabel, { color: theme.textSub }]}>
+                        Add{'\n'}Tag
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </SpringPress>
+              </ScrollView>
+              {/* v2: Page indicator dots */}
+              <PageDots count={tags.length} active={activeTagPage} theme={theme} />
+            </>
           )}
         </Animated.View>
 
@@ -607,6 +781,8 @@ export default function HomeScreen() {
           <SectionHeader
             title="Recent Scans"
             badge={totalScans}
+            cta={totalScans > 5 ? 'See All' : undefined}
+            onCtaPress={totalScans > 5 ? () => { } : undefined}
             theme={theme}
           />
 
@@ -621,7 +797,7 @@ export default function HomeScreen() {
             />
           ) : (
             <Card theme={theme}>
-              {recentScans.map((scan: any, i: number) => (
+              {recentScans.map((scan, i: number) => (
                 <ScanRow
                   key={`${scan.timestamp}-${i}`}
                   scan={scan}
@@ -639,6 +815,7 @@ export default function HomeScreen() {
           <SpringPress
             onPress={() => router.push('/(tabs)/shop')}
             accessibilityLabel="Shop now - 20% off premium metal tags"
+            accessibilityHint="Navigate to the shop"
           >
             <View style={promoStyles.banner}>
               <LinearGradient
@@ -655,9 +832,8 @@ export default function HomeScreen() {
               <View style={promoStyles.gridLine2} />
 
               <View style={promoStyles.content}>
-                <View style={promoStyles.pill}>
-                  <Text style={promoStyles.pillText}>LIMITED OFFER</Text>
-                </View>
+                {/* v2: Shimmer pill */}
+                <ShimmerPill text="LIMITED OFFER" />
                 <Text style={promoStyles.discount}>20%{'\n'}OFF</Text>
                 <Text style={promoStyles.subtitle}>Premium Metal Tags</Text>
                 <View style={promoStyles.cta}>
@@ -666,9 +842,17 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              <View style={promoStyles.iconContainer}>
+              {/* v2: Slowly rotating icon */}
+              <Animated.View style={[promoStyles.iconContainer, {
+                transform: [{
+                  rotate: promoRotation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg'],
+                  }),
+                }],
+              }]}>
                 <Ionicons name="pricetag" size={88} color="rgba(255,255,255,0.1)" />
-              </View>
+              </Animated.View>
             </View>
           </SpringPress>
         </Animated.View>
@@ -681,7 +865,6 @@ export default function HomeScreen() {
 
 const { width: SW } = Dimensions.get('window');
 
-// Root / scroll
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
@@ -697,22 +880,21 @@ const styles = StyleSheet.create({
   // Quick actions card
   qaCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     paddingVertical: sp(2),
-    paddingHorizontal: sp(0.5),
+    paddingHorizontal: sp(1),
   },
   qaItem: {
-    flex: 1,
     alignItems: 'center',
-    paddingVertical: sp(1),
-    minHeight: 44,
     justifyContent: 'center',
     gap: sp(0.75),
+    minWidth: 64,
+    minHeight: 44,
   },
   qaIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: RADII.md,
+    width: 56,
+    height: 56,
+    borderRadius: RADII.md + 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -721,6 +903,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLOR.grey500,
     letterSpacing: 0.15,
+    textAlign: 'center',
   },
 
   // Section header
@@ -772,12 +955,17 @@ const styles = StyleSheet.create({
     width: 288,
     marginRight: sp(2),
   },
-  addTagTile: {
+
+  // v2: Gradient-bordered Add Tag tile
+  addTagGradientBorder: {
     width: 100,
     height: 148,
     borderRadius: RADII.lg,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+    padding: 1.5,
+  },
+  addTagTileInner: {
+    flex: 1,
+    borderRadius: RADII.lg - 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: sp(1),
@@ -795,6 +983,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
+
+  // v2: Page indicator dots
+  pageDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: sp(1.5),
+  },
+  pageDot: {
+    height: 6,
+    borderRadius: 3,
+  },
 });
 
 // Card styles
@@ -809,7 +1010,6 @@ const cardStyles = StyleSheet.create({
     }),
   },
 
-  // Empty state card
   emptyCard: {
     padding: sp(3),
     alignItems: 'center',
@@ -909,16 +1109,31 @@ const heroStyles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  notifDot: {
+
+  // v2: Notification dot with pulse ring
+  notifDotWrap: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 6,
+    right: 6,
+    width: 12,
+    height: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifPulseRing: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLOR.amber,
+  },
+  notifDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
     backgroundColor: COLOR.amber,
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: 'rgba(15,37,87,0.4)',
   },
 
   // Glass stats pill
@@ -1051,6 +1266,8 @@ const promoStyles = StyleSheet.create({
     transform: [{ rotate: '20deg' }],
   },
   content: { flex: 1, gap: sp(0.75) },
+
+  // v2: Shimmer pill
   pill: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.18)',
@@ -1058,6 +1275,7 @@ const promoStyles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: RADII.full,
     marginBottom: sp(0.5),
+    overflow: 'hidden',
   },
   pillText: {
     fontSize: 9,
@@ -1065,6 +1283,15 @@ const promoStyles = StyleSheet.create({
     letterSpacing: 1.5,
     color: COLOR.white,
   },
+  shimmerStripe: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 40,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    transform: [{ skewX: '-15deg' }],
+  },
+
   discount: {
     fontSize: 44,
     fontWeight: '900',

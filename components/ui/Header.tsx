@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
         marginLeft: -spacing.xs,
     },
     title: {
-        ...typography.h3,
+        ...typography.heading,
         flex: 1,
         textAlign: 'center',
         fontWeight: '600',
