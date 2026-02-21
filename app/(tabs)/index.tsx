@@ -520,12 +520,16 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { mode } = useThemeStore();
   const theme = mode === 'dark' ? DARK_THEME : LIGHT_THEME;
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { tags, fetchTags, togglePrivacy, isLoading } = useTagStore();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTagPage, setActiveTagPage] = useState(0);
 
-  useEffect(() => { fetchTags(); }, []);
+  useEffect(() => { 
+    if (isAuthenticated && user) {
+      fetchTags(); 
+    }
+  }, [isAuthenticated, user]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

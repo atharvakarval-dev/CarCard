@@ -47,7 +47,6 @@ interface OtpBoxProps {
 
 function OtpBox({ value, isFocused, hasError, isSuccess, theme, index }: OtpBoxProps) {
     const scale = useRef(new Animated.Value(1)).current;
-    const borderAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         if (value) {
@@ -68,22 +67,13 @@ function OtpBox({ value, isFocused, hasError, isSuccess, theme, index }: OtpBoxP
         }
     }, [value]);
 
-    useEffect(() => {
-        Animated.timing(borderAnim, {
-            toValue: isFocused ? 1 : 0,
-            duration: 180,
-            useNativeDriver: false,
-        }).start();
-    }, [isFocused]);
-
     const borderColor = hasError
         ? '#FF3B30'
         : isSuccess
             ? '#34C759'
-            : borderAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [theme.border ?? '#E0E0E0', theme.primary],
-            });
+            : isFocused
+                ? theme.primary
+                : theme.border ?? '#E0E0E0';
 
     const bgColor = hasError
         ? '#FF3B3010'
@@ -98,7 +88,7 @@ function OtpBox({ value, isFocused, hasError, isSuccess, theme, index }: OtpBoxP
             style={[
                 styles.otpBox,
                 {
-                    borderColor: borderColor as any,
+                    borderColor,
                     backgroundColor: bgColor,
                     transform: [{ scale }],
                     shadowColor: isFocused ? theme.primary : 'transparent',
@@ -347,13 +337,19 @@ export default function OtpScreen() {
 
         if (isSuccess) {
             setSuccess(true);
+            
+            // Update auth store with proper token
+            const authState = useAuthStore.getState();
+            authState.user = {
+                _id: 'mock-id',
+                phoneNumber: phone || '9876543210',
+                token: 'mock-jwt-token-12345',
+                role: 'user',
+            };
+            authState.token = 'mock-jwt-token-12345';
+            authState.isAuthenticated = true;
+            
             setTimeout(() => {
-                setUser({
-                    _id: 'mock-id',
-                    phoneNumber: phone || '9876543210',
-                    token: 'mock-token',
-                    role: 'user',
-                });
                 router.replace('/(tabs)');
             }, 1600);
         } else {

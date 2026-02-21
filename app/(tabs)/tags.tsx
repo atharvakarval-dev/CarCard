@@ -20,6 +20,7 @@ import {
 import { EmptyState } from '../../components/shared/EmptyState';
 import { ScreenHeader } from '../../components/shared/ScreenHeader';
 import { TagCard } from '../../components/tag/TagCard';
+import { useAuthStore } from '../../store/authStore';
 import { useTagStore } from '../../store/tagStore';
 import { radii, spacing, useAppTheme } from '../../theme/theme';
 
@@ -140,10 +141,13 @@ export default function TagsScreen() {
     const router = useRouter();
     const t = useAppTheme();
     const { tags, fetchTags, togglePrivacy, isLoading } = useTagStore();
+    const { isAuthenticated, user } = useAuthStore();
 
     useEffect(() => {
-        fetchTags();
-    }, []);
+        if (isAuthenticated && user) {
+            fetchTags();
+        }
+    }, [isAuthenticated, user]);
 
     const renderItem = useCallback(
         ({ item, index }: { item: any; index: number }) => (
