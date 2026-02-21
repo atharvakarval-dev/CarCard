@@ -29,8 +29,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
-import { useThemeStore } from '../../store/themeStore';
-import { colors } from '../../theme/colors';
+import { useAppTheme } from '../../theme/theme';
 
 const OTP_LENGTH = 6;
 const RESEND_DURATION = 60;
@@ -207,7 +206,7 @@ function SuccessOverlay({ theme }: { theme: any }) {
     }, []);
 
     return (
-        <Animated.View style={[styles.successOverlay, { opacity, backgroundColor: theme.background }]}>
+        <Animated.View style={[styles.successOverlay, { opacity, backgroundColor: theme.bg }]}>
             <Animated.View style={{ transform: [{ scale: ringScale }] }}>
                 <View style={[styles.successRing, { borderColor: '#34C75930' }]}>
                     <Animated.View
@@ -221,7 +220,7 @@ function SuccessOverlay({ theme }: { theme: any }) {
                 </View>
             </Animated.View>
             <Text style={[styles.successTitle, { color: theme.text }]}>Verified!</Text>
-            <Text style={[styles.successSubtitle, { color: theme.textMuted }]}>
+            <Text style={[styles.successSubtitle, { color: theme.textSecondary }]}>
                 Taking you in…
             </Text>
         </Animated.View>
@@ -234,8 +233,7 @@ export default function OtpScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { phone } = useLocalSearchParams<{ phone: string }>();
-    const { mode } = useThemeStore();
-    const theme = colors[mode === 'dark' ? 'dark' : 'light'];
+    const theme = useAppTheme();
     const { verifyOtp, setUser } = useAuthStore();
 
     const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
@@ -383,13 +381,13 @@ export default function OtpScreen() {
     return (
         <>
             <StatusBar
-                barStyle={mode === 'dark' ? 'light-content' : 'dark-content'}
+                barStyle={theme.isDark ? 'light-content' : 'dark-content'}
                 translucent
                 backgroundColor="transparent"
             />
 
             <KeyboardAvoidingView
-                style={[styles.container, { backgroundColor: theme.background }]}
+                style={[styles.container, { backgroundColor: theme.bg }]}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <Animated.View
@@ -408,7 +406,7 @@ export default function OtpScreen() {
                         onPress={() => router.back()}
                         style={({ pressed }) => [
                             styles.backButton,
-                            { backgroundColor: theme.card ?? theme.surface },
+                            { backgroundColor: theme.surface },
                             pressed && { opacity: 0.7 },
                         ]}
                         accessibilityLabel="Go back"
@@ -426,7 +424,7 @@ export default function OtpScreen() {
                     <Text style={[styles.title, { color: theme.text }]}>
                         Verify your number
                     </Text>
-                    <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+                    <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                         We sent a 6-digit code to{'\n'}
                         <Text style={[styles.phone, { color: theme.text }]}>
                             +91 {maskedPhone}
@@ -515,8 +513,8 @@ export default function OtpScreen() {
 
                     {/* ── Trust line ── */}
                     <View style={styles.trustRow}>
-                        <Ionicons name="lock-closed-outline" size={13} color={theme.textMuted} />
-                        <Text style={[styles.trustText, { color: theme.textMuted }]}>
+                        <Ionicons name="lock-closed-outline" size={13} color={theme.textSecondary} />
+                        <Text style={[styles.trustText, { color: theme.textSecondary }]}>
                             Secured with end-to-end encryption
                         </Text>
                     </View>

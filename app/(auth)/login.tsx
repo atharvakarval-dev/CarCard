@@ -15,15 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useAuthStore } from '../../store/authStore';
-import { useThemeStore } from '../../store/themeStore';
-import { colors } from '../../theme/colors';
-import { spacing } from '../../theme/spacing';
+import { spacing, useAppTheme } from '../../theme/theme';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const { mode } = useThemeStore();
-    const isDark = mode === 'dark';
-    const theme = colors[isDark ? 'dark' : 'light'];
+    const theme = useAppTheme();
+    const isDark = theme.isDark;
     const { sendOtp } = useAuthStore();
 
     const [phone, setPhone] = useState('');
@@ -58,7 +55,7 @@ export default function LoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={[styles.container, { backgroundColor: theme.background }]}>
+                <View style={[styles.container, { backgroundColor: theme.bg }]}>
                     {/* Premium Gradient Background */}
                     <LinearGradient
                         colors={isDark ? ['#0A0E1A', '#141828'] : ['#F8FAFC', '#E2E8F0']}
@@ -72,7 +69,7 @@ export default function LoginScreen() {
                                 style={styles.header}
                             >
                                 <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
-                                <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+                                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                                     Enter your phone number to continue
                                 </Text>
                             </Animated.View>
@@ -92,7 +89,7 @@ export default function LoginScreen() {
                                     keyboardType="phone-pad"
                                     maxLength={10}
                                     error={error}
-                                    leftIcon={<Text style={{ color: theme.textMuted, fontWeight: '600' }}>+91</Text>}
+                                    leftIcon={<Text style={{ color: theme.textSecondary, fontWeight: '600' }}>+91</Text>}
                                     style={styles.input}
                                 />
 

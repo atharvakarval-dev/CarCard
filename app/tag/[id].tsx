@@ -33,7 +33,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useTagStore } from '../../store/tagStore';
-import { useThemeStore } from '../../store/themeStore';
+import { useAppTheme } from '../../theme/theme';
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 
@@ -571,8 +571,8 @@ const cb = StyleSheet.create({
 export default function TagDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { mode } = useThemeStore();
-    const c = PALETTE[mode === 'dark' ? 'dark' : 'light'];
+    const t = useAppTheme();
+    const c = PALETTE[t.isDark ? 'dark' : 'light'];
     const { tags, togglePrivacy } = useTagStore();
     const { user } = useAuthStore();
     const insets = useSafeAreaInsets();

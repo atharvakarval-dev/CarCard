@@ -34,7 +34,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTagStore } from '../../store/tagStore';
-import { useThemeStore } from '../../store/themeStore';
+import { useAppTheme } from '../../theme/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -407,8 +407,8 @@ const ec = StyleSheet.create({
 export default function PublicScanScreen() {
     const { tagId } = useLocalSearchParams<{ tagId: string }>();
     const router = useRouter();
-    const { mode } = useThemeStore();
-    const c = PALETTE[mode === 'dark' ? 'dark' : 'light'];
+    const t = useAppTheme();
+    const c = PALETTE[t.isDark ? 'dark' : 'light'];
     const { getPublicTag } = useTagStore();
     const insets = useSafeAreaInsets();
 
@@ -555,8 +555,8 @@ export default function PublicScanScreen() {
                 <Animated.View style={[fadeUp(cardAnim, 32)]}>
                     {Platform.OS === 'ios' ? (
                         <BlurView
-                            intensity={mode === 'dark' ? 20 : 55}
-                            tint={mode === 'dark' ? 'dark' : 'light'}
+                            intensity={t.isDark ? 20 : 55}
+                            tint={t.isDark ? 'dark' : 'light'}
                             style={[styles.card, { borderColor: c.cardBorder }]}
                         >
                             <CardInner

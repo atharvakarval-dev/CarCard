@@ -39,8 +39,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { Tag, useTagStore } from '../../store/tagStore';
-import { useThemeStore } from '../../store/themeStore';
-
+import { useAppTheme } from '../../theme/theme';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
@@ -825,8 +824,8 @@ const sb = StyleSheet.create({
 export default function EditTagScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
-    const { mode } = useThemeStore();
-    const c = PALETTE[mode === 'dark' ? 'dark' : 'light'];
+    const t = useAppTheme();
+    const c = PALETTE[t.isDark ? 'dark' : 'light'];
     const { tags, updateTag, sendTagOtp, verifyTagOtpAndUpdate, fetchTags, isLoading } = useTagStore();
     const { user } = useAuthStore();
     const insets = useSafeAreaInsets();
