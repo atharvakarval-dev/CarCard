@@ -89,7 +89,7 @@ export default function LoginScreen() {
                                     keyboardType="phone-pad"
                                     maxLength={10}
                                     error={error}
-                                    leftIcon={<Text style={{ color: theme.textSecondary, fontWeight: '600' }}>+91</Text>}
+                                    leftIcon={<Text style={{ color: theme.text, fontWeight: '600', fontSize: 18, letterSpacing: 1 }}>+91</Text>}
                                     style={styles.input}
                                 />
 

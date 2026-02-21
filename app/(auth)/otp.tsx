@@ -159,7 +159,7 @@ function ResendTimer({
                     style={[
                         styles.resendText,
                         {
-                            color: timer > 0 ? theme.textMuted : theme.primary,
+                            color: timer > 0 ? theme.textSecondary : theme.primary,
                             fontWeight: timer > 0 ? '400' : '600',
                         },
                     ]}
